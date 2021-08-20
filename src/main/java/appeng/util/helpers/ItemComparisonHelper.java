@@ -20,6 +20,7 @@ package appeng.util.helpers;
 
 import javax.annotation.Nonnull;
 
+import net.fabricmc.fabric.api.transfer.v1.item.ItemVariant;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -55,6 +56,22 @@ public class ItemComparisonHelper {
      */
     public boolean isSameItem(@Nonnull final ItemStack is, @Nonnull final ItemStack filter) {
         return ItemStack.isSame(is, filter) && this.isNbtTagEqual(is.getTag(), filter.getTag());
+    }
+
+    public boolean isFuzzyEqualItem(ItemVariant a, ItemStack b, FuzzyMode mode) {
+        if (a.isBlank() && b.isEmpty()) {
+            return true;
+        }
+
+        if (a.isBlank() || b.isEmpty()) {
+            return false;
+        }
+
+        if (a.getItem() != b.getItem()) {
+            return false; // This is the fast exit without having to convert a to an itemstack
+        }
+
+        return isFuzzyEqualItem(a.toStack(), b, mode);
     }
 
     /**

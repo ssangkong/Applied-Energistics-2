@@ -42,15 +42,12 @@ import net.minecraft.world.inventory.CraftingContainer;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.level.ClipBlockStateContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.util.LazyOptional;
-import net.minecraftforge.items.CapabilityItemHandler;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.wrapper.RangedWrapper;
 
@@ -87,6 +84,7 @@ import appeng.api.util.IConfigManager;
 import appeng.api.util.IConfigurableObject;
 import appeng.blockentity.inventory.AppEngInternalAEInventory;
 import appeng.blockentity.inventory.AppEngInternalInventory;
+import appeng.hooks.ICustomPickBlock;
 import appeng.me.storage.ItemHandlerAdapter;
 import appeng.me.storage.NullInventory;
 import appeng.parts.automation.StackUpgradeInventory;
@@ -849,12 +847,18 @@ public class DualityItemInterface
                             direction.getStepZ() * 0.501);
                     final Vec3 to = from.add(direction.getStepX(), direction.getStepY(),
                             direction.getStepZ());
-                    final BlockHitResult hit = null;// hostWorld.rayTraceBlocks( from, to ); //FIXME:
-                    // https://github.com/MinecraftForge/MinecraftForge/pull/6708
+                    var hit = hostWorld.isBlockInLine(new ClipBlockStateContext(
+                            from, to, state -> state == directedBlockState));
                     if (hit != null && !BAD_BLOCKS.contains(directedBlock)
                             && hit.getBlockPos().equals(directedBlockEntity.getBlockPos())) {
-                        final ItemStack g = directedBlock.getPickBlock(directedBlockState, hit, hostWorld,
-                                directedBlockEntity.getBlockPos(), null);
+                        ItemStack g;
+                        if (directedBlock instanceof ICustomPickBlock customPickBlock) {
+                            g = customPickBlock.getPickBlock(directedBlockState, hit, hostWorld,
+                                    directedBlockEntity.getBlockPos(), null);
+                        } else {
+                            g = directedBlock.getCloneItemStack(hostWorld,
+                                    directedBlockEntity.getBlockPos(), directedBlockState);
+                        }
                         if (!g.isEmpty()) {
                             what = g;
                         }
@@ -889,13 +893,6 @@ public class DualityItemInterface
     public void setPriority(int priority) {
         super.setPriority(priority);
         this.mainNode.ifPresent((grid, node) -> new GridCraftingPatternChange(this, node));
-    }
-
-    public <T> LazyOptional<T> getCapability(Capability<T> capabilityClass, Direction facing) {
-        if (capabilityClass == CapabilityItemHandler.ITEM_HANDLER_CAPABILITY) {
-            return LazyOptional.of(() -> this.storage).cast();
-        }
-        return super.getCapability(capabilityClass, facing);
     }
 
     /**

@@ -22,17 +22,15 @@ import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
 
+import net.fabricmc.fabric.api.transfer.v1.item.ItemStorage;
 import net.minecraft.core.Direction;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraftforge.common.util.LazyOptional;
-import net.minecraftforge.items.CapabilityItemHandler;
-import net.minecraftforge.items.IItemHandler;
 
 import appeng.api.config.FuzzyMode;
-import appeng.util.inv.AdaptorItemHandler;
 import appeng.util.inv.AdaptorItemHandlerPlayerInv;
+import appeng.util.inv.AdaptorItemStorage;
 
 /**
  * Universal Facade for other inventories. Used to conveniently interact with various types of inventories. This is not
@@ -42,11 +40,11 @@ import appeng.util.inv.AdaptorItemHandlerPlayerInv;
 public abstract class InventoryAdaptor {
     public static InventoryAdaptor getAdaptor(final BlockEntity te, final Direction d) {
         if (te != null) {
-            LazyOptional<IItemHandler> cap = te.getCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY, d);
+            var handler = ItemStorage.SIDED.find(te.getLevel(), te.getBlockPos(), d);
 
             // Attempt getting an IItemHandler for the given side via caps
-            if (cap.isPresent()) {
-                return new AdaptorItemHandler(cap.orElseThrow(IllegalStateException::new));
+            if (handler != null) {
+                return new AdaptorItemStorage(handler);
             }
         }
         return null;
